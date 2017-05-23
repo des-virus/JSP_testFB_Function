@@ -11,6 +11,9 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>Lấy các dữ liệu của post</title>
         <script type="text/javascript">
+            var appID = '659374067600518';
+            var appSecrect = 'dd530a30abf42a8391f4943588090d0c';
+            var expDate = '5183981';
             window.fbAsyncInit = function () {
                 FB.init({
                     appId: '659374067600518',
@@ -52,6 +55,46 @@
         <div class="container">
             <div style="margin-top: 100px" class="panel panel-primary">
                 <div class="panel panel-heading">
+                    Thông tin app
+                </div>
+
+                <div class="panel panel-body">
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="access_token">Access token: </label>
+                        <div class="col-sm-10">
+                            <input id="access_token" class="form-control" id="email" placeholder="Access token" value="EAAJXsn0SzIYBAAAmZCHcvUnVZAjbSRleDoZCeHs2ZA2Q5xMshcnn20v1qnzpe8TyXUs26POe3z748VvcWGkp01bwZB9lq3ZBlXQE7LrX8J8IPokrZCaxRdiZAi4Ki72VMCwZAcxVRkFVMqdU1POUgNaFLeXnu3PyJBNlpEZApiEl5exgZDZD">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="experied_time">Hết hạn: </label>
+                        <div class="col-sm-10">
+                            <input id="experied_time" value="" class="form-control" id="email" placeholder="Thời gian hết hạn">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="remaining">Còn lại: </label>
+                        <div class="col-sm-10">
+                            <input id="remaining" value="" class="form-control" id="email" placeholder="Thời gian còn lại">
+                        </div>
+                    </div>
+                    <div class="form-group"> 
+                        <div class="col-sm-offset-2 col-sm-10">
+                            <button id="btnChangeToken" class="btn btn-default">Đổi token</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group pull-right">
+
+                        Lần cập nhật cuối: <span class="strong" id="last_update_token"></span>
+
+                    </div>
+
+
+                </div>
+            </div>
+
+            <div class="panel panel-primary">
+                <div class="panel panel-heading">
                     Lấy reaction của post
                 </div>
 
@@ -62,10 +105,22 @@
                             <input id="post_id" value="216311481960_10154560014201961" class="form-control" id="email" placeholder="Nhập post ID">
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="post_number">Lượng post: </label>
+                        <div class="col-sm-10">
+                            <input id="post_number" value="10" class="form-control" id="email" placeholder="Nhập post ID">
+                        </div>
+                    </div>
                     <div class="form-group"> 
                         <div class="col-sm-offset-2 col-sm-10">
-                            <button id="btnCount" class="btn btn-default">Đếm</button>
+                            <button id="btnCount" class="btn btn-default">Kiểm tra</button>
                         </div>
+                    </div>
+
+                    <div class="form-group pull-right">
+
+                        Lần cập nhật cuối: <span class="bold" id="last_update"></span>
+
                     </div>
 
                     <table class="table table-striped">
@@ -81,16 +136,16 @@
 
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td id="like_count"></td>
-                                <td id="love_count"></td>
-                                <td id="wow_count"></td>
-                                <td id="haha_count"></td>
-                                <td id="sad_count"></td>
-                                <td id="angry_count"></td>
-                                <td id="total_count"></td> 
-                            </tr>
+                        <tbody id="tblBody">
+                            <!--                            <tr>
+                                                            <td id="like_count"></td>
+                                                            <td id="love_count"></td>
+                                                            <td id="wow_count"></td>
+                                                            <td id="haha_count"></td>
+                                                            <td id="sad_count"></td>
+                                                            <td id="angry_count"></td>
+                                                            <td id="total_count"></td> 
+                                                        </tr>-->
 
                         </tbody>
                     </table>
@@ -101,15 +156,66 @@
 
         <script>
             $(document).ready(function () {
+                $('#btnChangeToken').on('click', function () {
+                    console.log(getTimeRemaining(expDate));
+                    var old_token = $('#access_token').val();
+                    $.getJSON('https://graph.facebook.com/oauth/access_token',
+                            {
+                                'client_id': appID,
+                                'client_secret': appSecrect,
+                                'grant_type': 'fb_exchange_token',
+                                'fb_exchange_token': old_token
+                            }, function (response) {
+                        $('#access_token').val(response.access_token);
+                        console.log(response);
+                    });
+                });
+
                 $('#btnCount').on('click', function () {
+                    // Lấy số lượng post.
+                    // Lấy các post.
+                    // inHTML các post
+                    // get react từng post.
 
                     var postID = $('#post_id').val();
+                    var token = $('#access_token').val();
+                    var postNumber = $('#post_number').val();
+                    FB.api(
+                            '/1743490559227498/posts',
+                            'GET',
+                            {
+                                "limit": postNumber,
+                                'fields': 'id',
+                                'access_token': token
+                            },
+                    function (response) {
+                        console.log(response.data.length);
+                        for (var i = 0; i < response.data.length; i++) {
+                            $('#tblBody').append(getRowHTML(response.data[i].id));
+                            getPostReaction(response.data[i].id);
+                        }
+
+                        // last updated_time
+                        var currentdate = new Date();
+                        var datetime = "Last Sync: " + currentdate.getDate() + "/"
+                                + (currentdate.getMonth() + 1) + "/"
+                                + currentdate.getFullYear() + " @ "
+                                + currentdate.getHours() + ":"
+                                + currentdate.getMinutes() + ":"
+                                + currentdate.getSeconds();
+                        $('#last_update').text(currentdate.toLocaleString());
+                    }
+                    );
+                });
+
+                function getPostReaction(postID) {
+                    var token = $('#access_token').val();
                     FB.api(
                             '/' + postID + '/',
                             'GET',
                             {
                                 "fields": "reactions.type(LIKE).limit(0).summary(1).as(like),reactions.type(WOW).limit(0).summary(1).as(wow),reactions.type(SAD).limit(0).summary(1).as(sad),reactions.type(LOVE).limit(0).summary(1).as(love),reactions.type(HAHA).limit(0).summary(1).as(haha),reactions.type(ANGRY).limit(0).summary(1).as(angry)",
-                                "access_token": "EAACEdEose0cBAL4dWqYvKl7lxRGOXyFnvJOyyt9eyAjRMfdCFzqfKmDm4KuJdCK7ZAIFfT7h33OtvH9i27o2RZCkO7LHluOOJEZCNKTaDrCnPztQKlBXZC8GQlJIqSZA6uU3SAzy1giWB65qK9ZBXmHCrPNECVyiqvxCsJPMs7ZBCZAkkb61ha8uA3QxbVBttowZD"
+                                "access_token": token
                             },
                     function (response) {
                         console.log(response);
@@ -126,16 +232,66 @@
                         total += sad_count;
                         var angry_count = response.angry.summary.total_count;
                         total += angry_count;
-                        $('#like_count').text(like_count);
-                        $('#love_count').text(love_count);
-                        $('#wow_count').text(wow_count);
-                        $('#haha_count').text(haha_count);
-                        $('#sad_count').text(sad_count);
-                        $('#angry_count').text(angry_count);
-                        $('#total_count').text(total);
-                    }
-                    );
-                });
+                        setRowHTML(postID, like_count, love_count, wow_count, haha_count, sad_count, angry_count, total);
+                    });
+                }
+                function getRowHTML(postID) {
+                    var HTML = '<tr id=' + postID + '>';
+                    HTML += '<td id=like_count_' + postID + '></td>';
+                    HTML += '<td id=love_count_' + postID + '></td>';
+                    HTML += '<td id=wow_count_' + postID + '></td>';
+                    HTML += '<td id=haha_count_' + postID + '></td>';
+                    HTML += '<td id=sad_count_' + postID + '></td>';
+                    HTML += '<td id=angry_count_' + postID + '></td>';
+                    HTML += '<td id=total_count_' + postID + '></td>';
+                    HTML += '</tr>';
+
+
+                    return HTML;
+                }
+
+                function setRowHTML(postID, like_count, love_count, wow_count, haha_count, sad_count, angry_count, total_count) {
+                    $('#like_count_' + postID).text(like_count);
+                    $('#love_count_' + postID).text(love_count);
+                    $('#wow_count_' + postID).text(wow_count);
+                    $('#haha_count_' + postID).text(haha_count);
+                    $('#sad_count_' + postID).text(sad_count);
+                    $('#angry_count_' + postID).text(angry_count);
+                    $('#total_count_' + postID).text(total_count);
+                    $('#total_count_' + postID).tooltip('hide')
+                            .attr('data-original-title', '123\n123')
+                            .tooltip('fixTitle');
+                }
+
+                function convertToUnixTime(time) {
+
+                }
+
+                function convertToNormalTime(time) {
+                    var date = new Date(time * 1000);
+                    var day = date.getDay();
+                    var month = date.getMonth();
+                    var year = date.getFullYear();
+
+                    // Hours part from the timestamp
+                    var hours = date.getHours();
+                    // Minutes part from the timestamp
+                    var minutes = "0" + date.getMinutes();
+                    // Seconds part from the timestamp
+                    var seconds = "0" + date.getSeconds();
+
+                    // Will display time in 10:30:23 format
+                    var formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+                    var formattedDate = day + '/' + month + '/' + year;
+
+                    return formattedDate + ' ' + formattedTime;
+                }
+
+                function getTimeRemaining(second) {
+                    var second, minute, hour, day, month, year;
+
+                    return t;
+                }
             });
         </script>
     </body>
