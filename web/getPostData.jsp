@@ -22,7 +22,6 @@
                 });
                 FB.AppEvents.logPageView();
             };
-
             (function (d, s, id) {
                 var js, fjs = d.getElementsByTagName(s)[0];
                 if (d.getElementById(id)) {
@@ -32,8 +31,7 @@
                 js.id = id;
                 js.src = "//connect.facebook.net/vi_VN/sdk.js";
                 fjs.parentNode.insertBefore(js, fjs);
-            }(document, 'script', 'facebook-jssdk'));
-        </script>
+            }(document, 'script', 'facebook-jssdk'));</script>
         <!-- CDN -->
         <!-- Google jQuery CDN -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
@@ -49,6 +47,12 @@
 
         <!-- Latest compiled and minified JavaScript -->
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+        <style>
+            .tooltip-inner {
+                white-space:pre-wrap;
+            }
+        </style>
     </head>
     <body>
 
@@ -99,12 +103,12 @@
                 </div>
 
                 <div class="panel panel-body">
-                    <div class="form-group">
+<!--                    <div class="form-group">
                         <label class="control-label col-sm-2" for="post_id">Post ID: </label>
                         <div class="col-sm-10">
                             <input id="post_id" value="216311481960_10154560014201961" class="form-control" id="email" placeholder="Nhập post ID">
                         </div>
-                    </div>
+                    </div>-->
                     <div class="form-group">
                         <label class="control-label col-sm-2" for="post_number">Lượng post: </label>
                         <div class="col-sm-10">
@@ -113,7 +117,7 @@
                     </div>
                     <div class="form-group"> 
                         <div class="col-sm-offset-2 col-sm-10">
-                            <button id="btnCount" class="btn btn-default">Kiểm tra</button>
+                            <button id="btnCount" class="btn btn-default">Thống kê</button>
                         </div>
                     </div>
 
@@ -126,13 +130,18 @@
                     <table class="table table-striped">
                         <thead>
                             <tr>
+                                <th>Người đăng</th>
+                                <th>Nội dung</th>
+                                <th>Share</th>
                                 <th>Like</th>
                                 <th>Love</th>
                                 <th>Wow</th>                            
                                 <th>Haha</th>
                                 <th>Sad</th>
                                 <th>Angry</th>              
-                                <th>Total</th>
+                                <th>Total</th>   
+
+
 
                             </tr>
                         </thead>
@@ -170,13 +179,7 @@
                         console.log(response);
                     });
                 });
-
                 $('#btnCount').on('click', function () {
-                    // Lấy số lượng post.
-                    // Lấy các post.
-                    // inHTML các post
-                    // get react từng post.
-
                     var postID = $('#post_id').val();
                     var token = $('#access_token').val();
                     var postNumber = $('#post_number').val();
@@ -185,13 +188,17 @@
                             'GET',
                             {
                                 "limit": postNumber,
-                                'fields': 'id',
+                                'fields': 'id, shares, message,admin_creator ',
                                 'access_token': token
                             },
                     function (response) {
-                        console.log(response.data.length);
+                        console.log(response);
+
                         for (var i = 0; i < response.data.length; i++) {
-                            $('#tblBody').append(getRowHTML(response.data[i].id));
+                            var share = response.data[i].shares == undefined ? 0 : response.data[i].shares.count;
+                            var creator = response.data[i].admin_creator.id + ": " + response.data[i].admin_creator.name
+                            var message = response.data[i].message;
+                            $('#tblBody').append(getRowHTML(response.data[i].id, share, creator, message));
                             getPostReaction(response.data[i].id);
                         }
 
@@ -207,7 +214,6 @@
                     }
                     );
                 });
-
                 function getPostReaction(postID) {
                     var token = $('#access_token').val();
                     FB.api(
@@ -235,8 +241,11 @@
                         setRowHTML(postID, like_count, love_count, wow_count, haha_count, sad_count, angry_count, total);
                     });
                 }
-                function getRowHTML(postID) {
+                function getRowHTML(postID, share, creator, message) {
                     var HTML = '<tr id=' + postID + '>';
+                    HTML += '<td id=creator_' + postID + '>' + creator + '</td>';
+                    HTML += '<td id=message_' + postID + '>' + message + '<a href="http://fb.com/' + postID + '" target="_blank"> Xem </a></td>';
+                    HTML += '<td id=share_count_' + postID + '>' + share + '</td>';
                     HTML += '<td id=like_count_' + postID + '></td>';
                     HTML += '<td id=love_count_' + postID + '></td>';
                     HTML += '<td id=wow_count_' + postID + '></td>';
@@ -244,13 +253,17 @@
                     HTML += '<td id=sad_count_' + postID + '></td>';
                     HTML += '<td id=angry_count_' + postID + '></td>';
                     HTML += '<td id=total_count_' + postID + '></td>';
+
+
+
                     HTML += '</tr>';
-
-
                     return HTML;
                 }
 
-                function setRowHTML(postID, like_count, love_count, wow_count, haha_count, sad_count, angry_count, total_count) {
+                function setRowHTML(postID, like_count, love_count, wow_count, haha_count, sad_count, angry_count, total_count, share_count, creator, message) {
+                    $('#creator_' + postID).text(creator);
+                    $('#message_' + postID).text(message);
+                    $('#share_count_' + postID).text(share_count);
                     $('#like_count_' + postID).text(like_count);
                     $('#love_count_' + postID).text(love_count);
                     $('#wow_count_' + postID).text(wow_count);
@@ -258,9 +271,12 @@
                     $('#sad_count_' + postID).text(sad_count);
                     $('#angry_count_' + postID).text(angry_count);
                     $('#total_count_' + postID).text(total_count);
-                    $('#total_count_' + postID).tooltip('hide')
-                            .attr('data-original-title', '123\n123')
-                            .tooltip('fixTitle');
+
+
+
+                    //$('#total_count_' + postID).tooltip('hide')
+                    //.attr('data-original-title', '123\n123')
+                    //.tooltip('fixTitle');
                 }
 
                 function convertToUnixTime(time) {
@@ -272,24 +288,20 @@
                     var day = date.getDay();
                     var month = date.getMonth();
                     var year = date.getFullYear();
-
                     // Hours part from the timestamp
                     var hours = date.getHours();
                     // Minutes part from the timestamp
                     var minutes = "0" + date.getMinutes();
                     // Seconds part from the timestamp
                     var seconds = "0" + date.getSeconds();
-
                     // Will display time in 10:30:23 format
                     var formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
                     var formattedDate = day + '/' + month + '/' + year;
-
                     return formattedDate + ' ' + formattedTime;
                 }
 
                 function getTimeRemaining(second) {
                     var second, minute, hour, day, month, year;
-
                     return t;
                 }
             });
